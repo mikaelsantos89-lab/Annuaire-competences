@@ -1,3 +1,9 @@
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+
 const CATEGORY_LABELS: Record<string, string> = {
   EDUCATION_SPECIALISEE: "Éducation spécialisée",
   EDUCATION_PRECOCE: "Éducation précoce spécialisée",
@@ -6,16 +12,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   PEDAGOGIE_ORIENTATION: "Pédagogie / Orientation",
   ART_SPORT_CULTURE: "Art / Sport / Culture",
   MANAGEMENT: "Management",
-}
-
-const NATURE_LABELS: Record<string, string> = {
-  CERTIFIE: "Certifié",
-  EXPERIENTIEL: "Expérientiel",
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  METIER: "Métier",
-  NON_METIER: "Hors métier",
 }
 
 interface Result {
@@ -33,56 +29,37 @@ interface Result {
   sharingLevel: string
 }
 
-interface SearchResultsProps {
-  results: Result[]
-  query?: string
-}
-
-// Groupe les résultats par personne
 function groupByEmployee(results: Result[]) {
-  const map = new Map<string, { employee: Omit<Result, "skillId" | "skillLabel" | "category" | "skillNature" | "skillType" | "sharingLevel">; skills: Array<{ id: string; label: string; category: string; nature: string; type: string }> }>()
-
+  const map = new Map<string, {
+    employee: Pick<Result, "employeeId" | "firstName" | "lastName" | "email" | "institution" | "jobTitle">
+    skills: Array<{ id: string; label: string; category: string; nature: string }>
+  }>()
   for (const r of results) {
     if (!map.has(r.employeeId)) {
       map.set(r.employeeId, {
-        employee: {
-          employeeId: r.employeeId,
-          firstName: r.firstName,
-          lastName: r.lastName,
-          email: r.email,
-          institution: r.institution,
-          jobTitle: r.jobTitle,
-        },
+        employee: { employeeId: r.employeeId, firstName: r.firstName, lastName: r.lastName, email: r.email, institution: r.institution, jobTitle: r.jobTitle },
         skills: [],
       })
     }
-    map.get(r.employeeId)!.skills.push({
-      id: r.skillId,
-      label: r.skillLabel,
-      category: r.category,
-      nature: r.skillNature,
-      type: r.skillType,
-    })
+    map.get(r.employeeId)!.skills.push({ id: r.skillId, label: r.skillLabel, category: r.category, nature: r.skillNature })
   }
-
   return Array.from(map.values())
 }
 
-export default function SearchResults({ results, query }: SearchResultsProps) {
+export default function SearchResults({ results, query }: { results: Result[]; query?: string }) {
   if (!query && results.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-400">
+      <div className="text-center py-20 text-muted-foreground">
         <p className="text-4xl mb-3">🔍</p>
         <p className="text-sm">Entrez un mot-clé pour trouver une personne ressource</p>
       </div>
     )
   }
-
   if (query && results.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-400">
+      <div className="text-center py-20 text-muted-foreground">
         <p className="text-4xl mb-3">😕</p>
-        <p className="text-sm">Aucun résultat pour « {query} »</p>
+        <p className="text-sm font-medium">Aucun résultat pour « {query} »</p>
         <p className="text-xs mt-1">Essayez un autre mot-clé ou parcourez les catégories</p>
       </div>
     )
@@ -91,64 +68,44 @@ export default function SearchResults({ results, query }: SearchResultsProps) {
   const grouped = groupByEmployee(results)
 
   return (
-    <div>
-      <p className="text-sm text-gray-500 mb-4">
-        {grouped.length} personne{grouped.length > 1 ? "s" : ""} •{" "}
-        {results.length} compétence{results.length > 1 ? "s" : ""}
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        {grouped.length} personne{grouped.length > 1 ? "s" : ""} · {results.length} compétence{results.length > 1 ? "s" : ""}
       </p>
-
-      <div className="space-y-3">
-        {grouped.map(({ employee, skills }) => (
-          <div
-            key={employee.employeeId}
-            className="bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 transition-colors"
-          >
+      {grouped.map(({ employee, skills }) => (
+        <Card key={employee.employeeId} className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-blue-700 text-sm font-semibold">
-                      {employee.firstName[0]}{employee.lastName[0]}
-                    </span>
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                    {employee.firstName[0]}{employee.lastName[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm">{employee.firstName} {employee.lastName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{employee.jobTitle} · {employee.institution}</p>
+                  <Separator className="my-2.5" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {skills.map((skill) => (
+                      <Badge key={skill.id} variant="secondary" className="text-xs font-normal" title={CATEGORY_LABELS[skill.category]}>
+                        {skill.label}
+                        {skill.nature === "CERTIFIE" && <span className="ml-1 text-primary font-semibold">✓</span>}
+                      </Badge>
+                    ))}
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      {employee.firstName} {employee.lastName}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {employee.jobTitle} · {employee.institution}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Compétences */}
-                <div className="mt-3 flex flex-wrap gap-1.5 ml-12">
-                  {skills.map((skill) => (
-                    <span
-                      key={skill.id}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                      title={`${CATEGORY_LABELS[skill.category]} · ${NATURE_LABELS[skill.nature]}`}
-                    >
-                      {skill.label}
-                      {skill.nature === "CERTIFIE" && (
-                        <span className="text-blue-600 font-medium">✓</span>
-                      )}
-                    </span>
-                  ))}
                 </div>
               </div>
-
-              {/* Contact */}
               <a
                 href={`mailto:${employee.email}`}
-                className="flex-shrink-0 px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 Contacter
               </a>
             </div>
-          </div>
-        ))}
-      </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }

@@ -2,6 +2,10 @@
 
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useTransition } from "react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 const CATEGORY_LABELS: Record<string, string> = {
   EDUCATION_SPECIALISEE: "Éducation spécialisée",
@@ -26,14 +30,22 @@ export default function SearchBar({ initialQuery, initialCategory, categories }:
   const [query, setQuery] = useState(initialQuery ?? "")
   const [category, setCategory] = useState(initialCategory ?? "")
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
+  function push(q: string, cat: string) {
     const params = new URLSearchParams()
-    if (query.trim()) params.set("q", query.trim())
-    if (category) params.set("categorie", category)
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`)
-    })
+    if (q.trim()) params.set("q", q.trim())
+    if (cat) params.set("categorie", cat)
+    startTransition(() => router.push(`${pathname}?${params.toString()}`))
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    push(query, category)
+  }
+
+  function handleCategoryToggle(cat: string) {
+    const next = category === cat ? "" : cat
+    setCategory(next)
+    push(query, next)
   }
 
   function handleReset() {
@@ -43,58 +55,41 @@ export default function SearchBar({ initialQuery, initialCategory, categories }:
   }
 
   return (
-    <form onSubmit={handleSearch} className="space-y-3">
-      <div className="flex gap-3">
-        <input
-          type="text"
+    <div className="space-y-3">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Logopédie, autisme, yoga, bulgare…"
-          className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-        >
+        <Button type="submit" disabled={isPending}>
           {isPending ? "…" : "Rechercher"}
-        </button>
+        </Button>
         {(initialQuery || initialCategory) && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg bg-white"
-          >
+          <Button type="button" variant="outline" onClick={handleReset}>
             Effacer
-          </button>
+          </Button>
         )}
-      </div>
+      </form>
 
       {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {categories.map((cat) => (
-            <button
+            <Badge
               key={cat}
-              type="button"
-              onClick={() => {
-                const newCat = category === cat ? "" : cat
-                setCategory(newCat)
-                const params = new URLSearchParams()
-                if (query.trim()) params.set("q", query.trim())
-                if (newCat) params.set("categorie", newCat)
-                startTransition(() => router.push(`${pathname}?${params.toString()}`))
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
-                category === cat
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
-              }`}
+              variant={category === cat ? "default" : "outline"}
+              className={cn(
+                "cursor-pointer transition-colors",
+                category !== cat && "hover:bg-accent hover:text-accent-foreground"
+              )}
+              onClick={() => handleCategoryToggle(cat)}
             >
               {CATEGORY_LABELS[cat] ?? cat}
-            </button>
+            </Badge>
           ))}
         </div>
       )}
-    </form>
+    </div>
   )
 }

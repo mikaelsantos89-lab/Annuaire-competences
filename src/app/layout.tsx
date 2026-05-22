@@ -1,5 +1,10 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { Geist } from "next/font/google"
+import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/sonner"
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
   title: "Annuaire de compétences — Astural",
@@ -8,12 +13,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className="h-full antialiased">
-      <body className="min-h-full bg-gray-50">{children}</body>
+    <html lang="fr" className={cn("h-full antialiased", geist.variable)}>
+      <body className="min-h-full bg-background">
+        {children}
+        <Toaster richColors position="top-right" />
+      </body>
     </html>
   )
 }
