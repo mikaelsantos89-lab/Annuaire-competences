@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Référentiel ──────────────────────────────────────────────────────────────
+
+model Skill {
+  id          String      @id @default(cuid())
+  label       String
+  category    Category
+  subcategory String?
+  skillType   SkillType   // metier | non_metier
+  skillNature SkillNature // certifie | experientiel
+  keywords    String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  employeeSkills EmployeeSkill[]
+
+  @@map("skills")
+}
+
+// ─── Salariés ─────────────────────────────────────────────────────────────────
+
+model Employee {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String   @unique
+  institution String
+  jobTitle    String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  skills EmployeeSkill[]
+  user   User?
+
+  @@map("employees")
+}
+
+// ─── Association Salarié ↔ Compétence ─────────────────────────────────────────
+
+model EmployeeSkill {
+  id           String       @id @default(cuid())
+  employeeId   String
+  skillId      String
+  sharingLevel SharingLevel @default(astural)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, skillId])
+  @@map("employee_skills")
+}
+
+// ─── Auth (Better Auth) ───────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          UserRole  @default(COLLABORATEUR)
+  employeeId    String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employee Employee? @relation(fields: [employeeId], references: [id])
+  sessions Session[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Category {
+  EDUCATION_SPECIALISEE
+  EDUCATION_PRECOCE
+  TECHNIQUE
+  THERAPEUTIQUE
+  PEDAGOGIE_ORIENTATION
+  ART_SPORT_CULTURE
+  MANAGEMENT
+}
+
+enum SkillType {
+  METIER
+  NON_METIER
+}
+
+enum SkillNature {
+  CERTIFIE
+  EXPERIENTIEL
+}
+
+enum SharingLevel {
+  individuel
+  equipe
+  astural
+  externe
+}
+
+enum UserRole {
+  ADMIN_RH
+  COLLABORATEUR
+}
